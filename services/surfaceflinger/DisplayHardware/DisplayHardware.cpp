@@ -201,6 +201,16 @@ void DisplayHardware::init(uint32_t dpy)
         mDensity /= 160.0f;
     }
 
+    char test_property[PROPERTY_VALUE_MAX];
+    if (property_get("persist.sys.ui.select", test_property, NULL) > 0) {
+	    if (strcmp(test_property, "1") == 0) {
+			strcpy(test_property, "192");
+			mDensity = atoi(test_property) * (1.0f/160.0f);
+	    } else if (strcmp(test_property, "2") == 0) {
+			strcpy(test_property, "160");
+			mDensity = atoi(test_property) * (1.0f/160.0f);
+	    }
+	}
 
 
     /* FIXME: this is a temporary HACK until we are able to report the refresh rate
