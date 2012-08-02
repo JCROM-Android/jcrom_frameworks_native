@@ -88,6 +88,69 @@ void checkEGLErrors(const char* token)
     }
 }
 
+static char* loadUIType(FILE *fp, char *output)
+{
+    const char *WHITESPACES = " \t\r\n";
+    char line[200];
+
+    while (fgets(line, sizeof(line) - 1, fp) != NULL) {
+        char *delim = strchr(line, '=');
+        if (delim != NULL) {
+            *delim = '\0';
+
+            char *name = line, *value = delim + 1;
+            while (strchr(WHITESPACES, *name) != NULL) name++;
+            while (strchr(WHITESPACES, *value) != NULL) value++;
+            name[strcspn(name, WHITESPACES)] = '\0';
+            value[strcspn(value, WHITESPACES)] = '\0';
+
+            if (strcasecmp(name, "ui") == 0) {
+                if (strcasecmp(value, "phone") == 0) {
+                    value = "0";
+                } else
+                if (strcasecmp(value, "large") == 0) {
+                    value = "1";
+                } else
+                if (strcasecmp(value, "tablet") == 0) {
+                    value = "2";
+                }
+                strncpy(output, value, PROPERTY_VALUE_MAX - 1);
+                return output;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+static char* getUIType(char *output)
+{
+    char filepath[100], *env;
+    FILE *fp;
+
+    env = getenv("EXTERNAL_STORAGE");
+    if (env != NULL) {
+        strcpy(filepath, env);
+        strcat(filepath, "autorun.conf");
+    }
+    if ((fp = fopen("/mnt/sdcard-ext/autorun.conf", "r")) != NULL ||
+            (fp = fopen("/mnt/sdcard/autorun.conf", "r")) != NULL ||
+            ((env != NULL) && ((fp = fopen(filepath, "r")) != NULL)) ||
+            (fp = fopen("/storage/sdcard0/autorun.conf", "r")) != NULL) {
+        char *result = loadUIType(fp, output);
+        fclose(fp);
+        if (result != NULL) {
+            return output;
+        }
+    }
+
+    if (property_get("persist.sys.ui.select", output, NULL) > 0) {
+        return output;
+    } else {
+        return NULL;
+    }
+}
+
 /*
  * Initialize the display to the specified values.
  *
@@ -202,7 +265,7 @@ void DisplayHardware::init(uint32_t dpy)
     }
 
     char test_property[PROPERTY_VALUE_MAX];
-    if (property_get("persist.sys.ui.select", test_property, NULL) > 0) {
+    if (getUIType(test_property) != NULL) {
 	    if (strcmp(test_property, "1") == 0) {
 			strcpy(test_property, "192");
 			mDensity = atoi(test_property) * (1.0f/160.0f);
