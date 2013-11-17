@@ -715,6 +715,16 @@ status_t SurfaceFlinger::getDisplayInfo(const sp<IBinder>& display, DisplayInfo*
         info->orientation = 0;
     }
 
+    char select_mode[PROPERTY_VALUE_MAX];
+    char select_density[PROPERTY_VALUE_MAX];
+    if (property_get("persist.sys.ui.select", select_mode, NULL) > 0) {
+        if ((strcmp(select_mode, "0") == 0) || (strcmp(select_mode, "1") == 0)) {
+            if (property_get("persist.sys.ui.density", select_density, NULL) > 0) {
+                info->density = atoi(select_density) * (1.0f/160.0f);
+            }
+        }
+    }
+
     info->w = hwc.getWidth(type);
     info->h = hwc.getHeight(type);
     info->xdpi = xdpi;
